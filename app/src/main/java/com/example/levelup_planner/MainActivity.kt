@@ -60,20 +60,25 @@ fun MyTextBox() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        //input text field
-        TextField(
-            value = typingName, //what is currently shown
-            onValueChange = { newText -> typingName = newText }, //update
-            label = { Text("Enter your name") } //floating label
-        )
+        Box(
+            modifier = Modifier.weight(.5f)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            //input text field
+            TextField(
+                value = typingName, //what is currently shown
+                onValueChange = { newText -> typingName = newText }, //update
+                label = { Text("Enter your name") } //floating label
+            )
 
+        }
         //button to submit name
         Button(onClick = {
             savedName = typingName
         }) {
             Text("Sumbit")
         }
-
         Text(
             text = "Username: $savedName"
         )
