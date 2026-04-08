@@ -33,7 +33,10 @@ import com.example.levelup_planner.data.AppPreferences
 import com.example.levelup_planner.model.AvatarChoice
 import com.example.levelup_planner.model.ClassItem
 import com.example.levelup_planner.model.ThemeMode
+import com.example.levelup_planner.model.WorkItem
 import com.example.levelup_planner.ui.screens.AddClassScreen
+import com.example.levelup_planner.ui.screens.AddWorkScreen
+import com.example.levelup_planner.ui.screens.ClassScreen
 import com.example.levelup_planner.ui.screens.HomeScreen
 import com.example.levelup_planner.ui.screens.OnboardingScreen
 import com.example.levelup_planner.ui.screens.ProfileScreen
@@ -45,10 +48,14 @@ enum class AppScreen {
     THEME,
     HOME,
     ADD_CLASS,
-    PROFILE
+    PROFILE,
+    CLASS_VIEW,
+    ADD_WORK
+
 }
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -78,9 +85,46 @@ class MainActivity : ComponentActivity() {
                 )
             }
 
+            var selectedClass by remember { mutableStateOf<ClassItem?>(null) }
+            var newWorkName by rememberSaveable { mutableStateOf("") }
+            val work = remember {
+                mutableStateListOf<WorkItem>().apply {
+                    addAll(AppPreferences.getWork(context))
+                }
+            }
+
+            var points by rememberSaveable {
+                mutableStateOf(AppPreferences.getPoints(context))
+            }
+
             val classes = remember {
                 mutableStateListOf<ClassItem>().apply {
                     addAll(AppPreferences.getClasses(context))
+                }
+            }
+
+            //xp gain
+            val onTaskComplete: (ClassItem, Int) -> Unit = { targetClass, xpGain ->
+                val index = classes.indexOf(targetClass)
+                if (index != -1) {
+                    var newXp = targetClass.xp + xpGain
+                    var newLevel = targetClass.level
+                    var earnedPoints = 0
+
+                    while (newXp >= 100) {
+                        newXp -= 100
+                        newLevel++
+                        earnedPoints += 50 // Reward for leveling up
+                    }
+
+                    // Update List and SharedPreferences
+                    classes[index] = targetClass.copy(xp = newXp, level = newLevel)
+                    AppPreferences.saveClasses(context, classes.toList())
+
+                    if (earnedPoints > 0) {
+                        points += earnedPoints
+                        AppPreferences.savePoints(context, points)
+                    }
                 }
             }
 
@@ -172,9 +216,16 @@ class MainActivity : ComponentActivity() {
                                 HomeScreen(
                                     username = username,
                                     classes = classes,
+                                    points = points,
                                     onAddClassClick = {
-                                        newClassName = ""
                                         currentScreen = AppScreen.ADD_CLASS
+                                    },
+                                    onClassClick = { clickedClass ->
+                                        selectedClass = clickedClass
+                                        currentScreen = AppScreen.CLASS_VIEW
+
+//                                        selectedClass ->
+//                                        onTaskComplete(selectedClass, 25)
                                     }
                                 )
                             }
@@ -220,6 +271,57 @@ class MainActivity : ComponentActivity() {
                                     }
                                 )
                             }
+
+                            AppScreen.CLASS_VIEW -> {
+                                selectedClass?.let { currentClass ->
+                                    ClassScreen(
+                                        classItem = currentClass,
+                                        workList = work.filter { !it.done }, // Only show incomplete work
+                                        onBack = { currentScreen = AppScreen.HOME },
+                                        onCompleteWork = { clickedWork ->
+                                            onTaskComplete(currentClass, clickedWork.xp)
+
+                                            // Mark this specific work item as done
+                                            val workIndex = work.indexOf(clickedWork)
+                                            if (workIndex != -1) {
+                                                work[workIndex] = clickedWork.copy(done = true)
+                                                AppPreferences.saveWork(context, work.toList())
+                                            }
+                                        },
+                                        onAddWorkClick = {
+                                            currentScreen = AppScreen.ADD_WORK
+                                        }
+                                    )
+                                }
+                            }
+
+                            AppScreen.ADD_WORK -> {
+                                AddWorkScreen(
+                                    workName = newWorkName,
+                                    onWorkNameChange = { newWorkName = it },
+                                    onSave = {
+                                        val trimmed = newWorkName.trim()
+                                        if (trimmed.isNotEmpty()) {
+                                            work.add(
+                                                WorkItem(
+                                                    name = trimmed,
+                                                    done = false,
+                                                    xp = 5,
+                                                    due = trimmed
+                                                )
+                                            )
+                                            AppPreferences.saveWork(context, work.toList())
+                                            newWorkName = ""
+                                            currentScreen = AppScreen.HOME
+                                        }
+                                    },
+                                    onCancel = {
+                                        newWorkName = ""
+                                        currentScreen = AppScreen.HOME
+                                    }
+                                )
+                            }
+
                         }
                     }
                 }

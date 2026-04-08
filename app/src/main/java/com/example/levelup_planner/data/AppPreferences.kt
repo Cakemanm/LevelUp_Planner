@@ -4,6 +4,7 @@ import android.content.Context
 import com.example.levelup_planner.model.AvatarChoice
 import com.example.levelup_planner.model.ClassItem
 import com.example.levelup_planner.model.ThemeMode
+import com.example.levelup_planner.model.WorkItem
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -13,6 +14,9 @@ object AppPreferences {
     private const val KEY_THEME = "theme"
     private const val KEY_CLASSES = "classes"
     private const val KEY_AVATAR = "avatar"
+    private const val KEY_WORK = "work"
+    private const val KEY_POINTS = "user_Points"
+
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -82,4 +86,52 @@ object AppPreferences {
 
         return classList
     }
+
+    fun getWork(context: Context): List<WorkItem> {
+        val jsonString = prefs(context).getString(KEY_WORK, "[]") ?: "[]"
+        val jsonArray = JSONArray(jsonString)
+        val workList = mutableListOf<WorkItem>()
+
+
+        for (i in 0 until jsonArray.length()) {
+            val obj = jsonArray.getJSONObject(i)
+            workList.add(
+                WorkItem(
+                    name = obj.getString("name"),
+                    done = obj.getBoolean("done"),
+                    xp = obj.getInt("xp"),
+                    due = obj.getString("due")
+                )
+            )
+        }
+
+
+        return workList
+    }
+
+
+    fun saveWork(context: Context, work: List<WorkItem>) {
+        val jsonArray = JSONArray()
+        work.forEach { workItem ->
+            val obj = JSONObject()
+            obj.put("name", workItem.name)
+            obj.put("done", workItem.done)
+            obj.put("xp", workItem.xp)
+            jsonArray.put(obj)
+        }
+
+
+        prefs(context).edit().putString(KEY_WORK, jsonArray.toString()).apply()
+    }
+
+    fun getPoints(context: Context): Int {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getInt(KEY_POINTS, 0)
+    }
+
+    fun savePoints(context: Context, points: Int) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putInt(KEY_POINTS, points).apply()
+    }
+
 }
