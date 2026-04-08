@@ -1,9 +1,9 @@
 package com.example.levelup_planner.data
 
 import android.content.Context
+import com.example.levelup_planner.model.AvatarChoice
 import com.example.levelup_planner.model.ClassItem
 import com.example.levelup_planner.model.ThemeMode
-import com.example.levelup_planner.model.WorkItem
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -12,7 +12,7 @@ object AppPreferences {
     private const val KEY_USERNAME = "username"
     private const val KEY_THEME = "theme"
     private const val KEY_CLASSES = "classes"
-    private const val KEY_WORK = "work"
+    private const val KEY_AVATAR = "avatar"
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -35,6 +35,19 @@ object AppPreferences {
             ThemeMode.valueOf(saved ?: ThemeMode.SYSTEM.name)
         } catch (e: Exception) {
             ThemeMode.SYSTEM
+        }
+    }
+
+    fun saveAvatar(context: Context, avatar: AvatarChoice) {
+        prefs(context).edit().putString(KEY_AVATAR, avatar.name).apply()
+    }
+
+    fun getAvatar(context: Context): AvatarChoice {
+        val saved = prefs(context).getString(KEY_AVATAR, AvatarChoice.LIGHT.name)
+        return try {
+            AvatarChoice.valueOf(saved ?: AvatarChoice.LIGHT.name)
+        } catch (e: Exception) {
+            AvatarChoice.LIGHT
         }
     }
 
@@ -68,37 +81,5 @@ object AppPreferences {
         }
 
         return classList
-    }
-
-    fun getWork(context: Context): List<WorkItem> {
-        val jsonString = prefs(context).getString(KEY_WORK, "[]") ?: "[]"
-        val jsonArray = JSONArray(jsonString)
-        val workList = mutableListOf<WorkItem>()
-
-        for (i in 0 until jsonArray.length()) {
-            val obj = jsonArray.getJSONObject(i)
-            workList.add(
-                WorkItem(
-                    name = obj.getString("name"),
-                    done = obj.getBoolean("false"),
-                    xp = obj.getInt("xp")
-                )
-            )
-        }
-
-        return workList
-    }
-
-    fun saveWork(context: Context, work: List<WorkItem>) {
-        val jsonArray = JSONArray()
-        work.forEach { workItem ->
-            val obj = JSONObject()
-            obj.put("name", workItem.name)
-            obj.put("done", workItem.done)
-            obj.put("xp", workItem.xp)
-            jsonArray.put(obj)
-        }
-
-        prefs(context).edit().putString(KEY_WORK, jsonArray.toString()).apply()
     }
 }
