@@ -41,6 +41,7 @@ import com.example.levelup_planner.ui.screens.HomeScreen
 import com.example.levelup_planner.ui.screens.OnboardingScreen
 import com.example.levelup_planner.ui.screens.ProfileScreen
 import com.example.levelup_planner.ui.screens.ThemeSelectionScreen
+import com.example.levelup_planner.ui.screens.WorkType
 import com.example.levelup_planner.ui.theme.LevelUp_PlannerTheme
 
 enum class AppScreen {
@@ -87,6 +88,9 @@ class MainActivity : ComponentActivity() {
 
             var selectedClass by remember { mutableStateOf<ClassItem?>(null) }
             var newWorkName by rememberSaveable { mutableStateOf("") }
+
+            var selectedWorkType by remember { mutableStateOf(WorkType.CLASSWORK) }
+
             val work = remember {
                 mutableStateListOf<WorkItem>().apply {
                     addAll(AppPreferences.getWork(context))
@@ -102,6 +106,7 @@ class MainActivity : ComponentActivity() {
                     addAll(AppPreferences.getClasses(context))
                 }
             }
+
 
             //xp gain
             val onTaskComplete: (ClassItem, Int) -> Unit = { targetClass, xpGain ->
@@ -299,6 +304,8 @@ class MainActivity : ComponentActivity() {
                                 AddWorkScreen(
                                     workName = newWorkName,
                                     onWorkNameChange = { newWorkName = it },
+                                    selectedType = selectedWorkType,
+                                    onTypeChange = { selectedWorkType = it },
                                     onSave = {
                                         val trimmed = newWorkName.trim()
                                         if (trimmed.isNotEmpty()) {
@@ -306,18 +313,19 @@ class MainActivity : ComponentActivity() {
                                                 WorkItem(
                                                     name = trimmed,
                                                     done = false,
-                                                    xp = 5,
+                                                    xp = selectedWorkType.xpReward,
                                                     due = trimmed
                                                 )
                                             )
                                             AppPreferences.saveWork(context, work.toList())
                                             newWorkName = ""
-                                            currentScreen = AppScreen.HOME
+                                            selectedWorkType = WorkType.CLASSWORK
+                                            currentScreen = AppScreen.CLASS_VIEW
                                         }
                                     },
                                     onCancel = {
                                         newWorkName = ""
-                                        currentScreen = AppScreen.HOME
+                                        currentScreen = AppScreen.CLASS_VIEW
                                     }
                                 )
                             }

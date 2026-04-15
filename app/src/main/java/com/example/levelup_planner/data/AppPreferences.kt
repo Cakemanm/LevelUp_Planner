@@ -1,10 +1,13 @@
 package com.example.levelup_planner.data
 
+import android.R.attr.name
+import android.R.attr.type
 import android.content.Context
 import com.example.levelup_planner.model.AvatarChoice
 import com.example.levelup_planner.model.ClassItem
 import com.example.levelup_planner.model.ThemeMode
 import com.example.levelup_planner.model.WorkItem
+import com.example.levelup_planner.ui.screens.WorkType
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -95,15 +98,32 @@ object AppPreferences {
 
         for (i in 0 until jsonArray.length()) {
             val obj = jsonArray.getJSONObject(i)
+
+
+            val name = obj.optString("name", "Unknown")
+            val done = obj.optBoolean("done", false)
+            val xp = obj.optInt("xp", 10)
+            val due = obj.optString("due", "")
+
+            val typeString = obj.optString("type", "CLASSWORK")
+            val type = try {
+                WorkType.valueOf(typeString)
+            } catch (e: Exception) {
+                WorkType.CLASSWORK
+            }
+
+
             workList.add(
                 WorkItem(
-                    name = obj.getString("name"),
-                    done = obj.getBoolean("done"),
-                    xp = obj.getInt("xp"),
-                    due = obj.getString("due")
+                    name = name,
+                    done = done,
+                    xp = xp,
+                    due = due,
+                    type = type
                 )
             )
         }
+
 
 
         return workList
@@ -117,6 +137,9 @@ object AppPreferences {
             obj.put("name", workItem.name)
             obj.put("done", workItem.done)
             obj.put("xp", workItem.xp)
+            obj.put("due", workItem.due)
+            obj.put("type", workItem.type.name)
+
             jsonArray.put(obj)
         }
 
