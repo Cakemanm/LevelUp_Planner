@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -28,12 +29,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.isSystemInDarkTheme
 import com.example.levelup_planner.data.AppPreferences
 import com.example.levelup_planner.model.AvatarChoice
 import com.example.levelup_planner.model.ClassItem
 import com.example.levelup_planner.model.ThemeMode
+import com.example.levelup_planner.model.WorkItem
 import com.example.levelup_planner.ui.screens.AddClassScreen
+import com.example.levelup_planner.ui.screens.AddWorkScreen
 import com.example.levelup_planner.ui.screens.HomeScreen
 import com.example.levelup_planner.ui.screens.OnboardingScreen
 import com.example.levelup_planner.ui.screens.ProfileScreen
@@ -45,7 +47,9 @@ enum class AppScreen {
     THEME,
     HOME,
     ADD_CLASS,
-    PROFILE
+    ADD_WORK,
+    PROFILE,
+    SPEND_POINTS
 }
 
 class MainActivity : ComponentActivity() {
@@ -72,6 +76,10 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf("")
             }
 
+            var newWorkName by rememberSaveable {
+                mutableStateOf("")
+            }
+
             var currentScreen by rememberSaveable {
                 mutableStateOf(
                     if (username.isBlank()) AppScreen.ONBOARDING else AppScreen.HOME
@@ -81,6 +89,12 @@ class MainActivity : ComponentActivity() {
             val classes = remember {
                 mutableStateListOf<ClassItem>().apply {
                     addAll(AppPreferences.getClasses(context))
+                }
+            }
+
+            val work = remember {
+                mutableStateListOf<WorkItem>().apply {
+                    addAll(AppPreferences.getWork(context))
                 }
             }
 
@@ -172,9 +186,14 @@ class MainActivity : ComponentActivity() {
                                 HomeScreen(
                                     username = username,
                                     classes = classes,
+                                    work = work,
                                     onAddClassClick = {
                                         newClassName = ""
                                         currentScreen = AppScreen.ADD_CLASS
+                                    },
+                                    onAddWorkClick = {
+                                        newWorkName = ""
+                                        currentScreen = AppScreen.ADD_WORK
                                     }
                                 )
                             }
@@ -205,6 +224,32 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
 
+                            AppScreen.ADD_WORK -> {
+                                AddWorkScreen(
+                                    workName = newWorkName,
+                                    onWorkNameChange = { newWorkName = it },
+                                    onSave = {
+                                        val trimmed = newWorkName.trim()
+                                        if (trimmed.isNotEmpty()) {
+                                            work.add(
+                                                WorkItem(
+                                                    name = trimmed,
+                                                    done = false,
+                                                    xp = 5
+                                                )
+                                            )
+                                            AppPreferences.saveWork(context, work.toList())
+                                            newWorkName = ""
+                                            currentScreen = AppScreen.HOME
+                                        }
+                                    },
+                                    onCancel = {
+                                        newWorkName = ""
+                                        currentScreen = AppScreen.HOME
+                                    }
+                                )
+                            }
+
                             AppScreen.PROFILE -> {
                                 ProfileScreen(
                                     username = username,
@@ -219,6 +264,10 @@ class MainActivity : ComponentActivity() {
                                         AppPreferences.saveAvatar(context, selected)
                                     }
                                 )
+                            }
+
+                            AppScreen.SPEND_POINTS -> {
+                                // TODO: Spend Points screen
                             }
                         }
                     }
