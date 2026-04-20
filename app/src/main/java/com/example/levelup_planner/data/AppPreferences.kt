@@ -5,6 +5,7 @@ import com.example.levelup_planner.model.AvatarChoice
 import com.example.levelup_planner.model.ClassItem
 import com.example.levelup_planner.model.ThemeMode
 import com.example.levelup_planner.model.WorkItem
+import com.example.levelup_planner.ui.screens.WorkType
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -15,6 +16,7 @@ object AppPreferences {
     private const val KEY_CLASSES = "classes"
     private const val KEY_AVATAR = "avatar"
     private const val KEY_WORK = "work"
+    private const val KEY_POINTS = "user_Points"
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -92,6 +94,8 @@ object AppPreferences {
             obj.put("name", workItem.name)
             obj.put("done", workItem.done)
             obj.put("xp", workItem.xp)
+            obj.put("due", workItem.due)
+            obj.put("type", workItem.type.name)
             jsonArray.put(obj)
         }
 
@@ -105,15 +109,38 @@ object AppPreferences {
 
         for (i in 0 until jsonArray.length()) {
             val obj = jsonArray.getJSONObject(i)
+
+            val name = obj.optString("name", "Unknown")
+            val done = obj.optBoolean("done", false)
+            val xp = obj.optInt("xp", 10)
+            val due = obj.optString("due", "")
+
+            val typeString = obj.optString("type", "CLASSWORK")
+            val type = try {
+                WorkType.valueOf(typeString)
+            } catch (e: Exception) {
+                WorkType.CLASSWORK
+            }
+
             workList.add(
                 WorkItem(
-                    name = obj.getString("name"),
-                    done = obj.getBoolean("done"),
-                    xp = obj.getInt("xp")
+                    name = name,
+                    done = done,
+                    xp = xp,
+                    due = due,
+                    type = type
                 )
             )
         }
 
         return workList
+    }
+
+    fun getPoints(context: Context): Int {
+        return prefs(context).getInt(KEY_POINTS, 0)
+    }
+
+    fun savePoints(context: Context, points: Int) {
+        prefs(context).edit().putInt(KEY_POINTS, points).apply()
     }
 }

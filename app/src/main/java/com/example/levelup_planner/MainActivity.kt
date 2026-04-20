@@ -36,10 +36,12 @@ import com.example.levelup_planner.model.ThemeMode
 import com.example.levelup_planner.model.WorkItem
 import com.example.levelup_planner.ui.screens.AddClassScreen
 import com.example.levelup_planner.ui.screens.AddWorkScreen
+import com.example.levelup_planner.ui.screens.ClassScreen
 import com.example.levelup_planner.ui.screens.HomeScreen
 import com.example.levelup_planner.ui.screens.OnboardingScreen
 import com.example.levelup_planner.ui.screens.ProfileScreen
 import com.example.levelup_planner.ui.screens.ThemeSelectionScreen
+import com.example.levelup_planner.ui.screens.WorkType
 import com.example.levelup_planner.ui.theme.LevelUp_PlannerTheme
 
 enum class AppScreen {
@@ -49,10 +51,11 @@ enum class AppScreen {
     ADD_CLASS,
     ADD_WORK,
     PROFILE,
-    SPEND_POINTS
+    CLASS_VIEW
 }
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -80,11 +83,22 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf("")
             }
 
+            var selectedWorkType by rememberSaveable {
+                mutableStateOf(WorkType.CLASSWORK)
+            }
+
             var currentScreen by rememberSaveable {
                 mutableStateOf(
                     if (username.isBlank()) AppScreen.ONBOARDING else AppScreen.HOME
                 )
             }
+
+            // Where AddWorkScreen should return to on save/cancel (HOME vs CLASS_VIEW)
+            var addWorkReturnTo by rememberSaveable {
+                mutableStateOf(AppScreen.HOME)
+            }
+
+            var selectedClass by remember { mutableStateOf<ClassItem?>(null) }
 
             val classes = remember {
                 mutableStateListOf<ClassItem>().apply {
@@ -95,6 +109,39 @@ class MainActivity : ComponentActivity() {
             val work = remember {
                 mutableStateListOf<WorkItem>().apply {
                     addAll(AppPreferences.getWork(context))
+                }
+            }
+
+            var points by rememberSaveable {
+                mutableStateOf(AppPreferences.getPoints(context))
+            }
+
+            // Award XP to a class and hand out 50 points per level-up
+            val onTaskComplete: (ClassItem, Int) -> Unit = { targetClass, xpGain ->
+                val index = classes.indexOf(targetClass)
+                if (index != -1) {
+                    var newXp = targetClass.xp + xpGain
+                    var newLevel = targetClass.level
+                    var earnedPoints = 0
+
+                    while (newXp >= 100) {
+                        newXp -= 100
+                        newLevel++
+                        earnedPoints += 50
+                    }
+
+                    classes[index] = targetClass.copy(xp = newXp, level = newLevel)
+                    AppPreferences.saveClasses(context, classes.toList())
+
+                    // Keep selectedClass reference in sync so the detail view stays accurate
+                    if (selectedClass == targetClass) {
+                        selectedClass = classes[index]
+                    }
+
+                    if (earnedPoints > 0) {
+                        points += earnedPoints
+                        AppPreferences.savePoints(context, points)
+                    }
                 }
             }
 
@@ -187,13 +234,20 @@ class MainActivity : ComponentActivity() {
                                     username = username,
                                     classes = classes,
                                     work = work,
+                                    points = points,
                                     onAddClassClick = {
                                         newClassName = ""
                                         currentScreen = AppScreen.ADD_CLASS
                                     },
                                     onAddWorkClick = {
                                         newWorkName = ""
+                                        selectedWorkType = WorkType.CLASSWORK
+                                        addWorkReturnTo = AppScreen.HOME
                                         currentScreen = AppScreen.ADD_WORK
+                                    },
+                                    onClassClick = { clickedClass ->
+                                        selectedClass = clickedClass
+                                        currentScreen = AppScreen.CLASS_VIEW
                                     }
                                 )
                             }
@@ -228,6 +282,8 @@ class MainActivity : ComponentActivity() {
                                 AddWorkScreen(
                                     workName = newWorkName,
                                     onWorkNameChange = { newWorkName = it },
+                                    selectedType = selectedWorkType,
+                                    onTypeChange = { selectedWorkType = it },
                                     onSave = {
                                         val trimmed = newWorkName.trim()
                                         if (trimmed.isNotEmpty()) {
@@ -235,17 +291,21 @@ class MainActivity : ComponentActivity() {
                                                 WorkItem(
                                                     name = trimmed,
                                                     done = false,
-                                                    xp = 5
+                                                    xp = selectedWorkType.xpReward,
+                                                    due = "",
+                                                    type = selectedWorkType
                                                 )
                                             )
                                             AppPreferences.saveWork(context, work.toList())
                                             newWorkName = ""
-                                            currentScreen = AppScreen.HOME
+                                            selectedWorkType = WorkType.CLASSWORK
+                                            currentScreen = addWorkReturnTo
                                         }
                                     },
                                     onCancel = {
                                         newWorkName = ""
-                                        currentScreen = AppScreen.HOME
+                                        selectedWorkType = WorkType.CLASSWORK
+                                        currentScreen = addWorkReturnTo
                                     }
                                 )
                             }
@@ -266,8 +326,29 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
 
-                            AppScreen.SPEND_POINTS -> {
-                                // TODO: Spend Points screen
+                            AppScreen.CLASS_VIEW -> {
+                                selectedClass?.let { currentClass ->
+                                    ClassScreen(
+                                        classItem = currentClass,
+                                        workList = work.filter { !it.done },
+                                        onBack = { currentScreen = AppScreen.HOME },
+                                        onCompleteWork = { clickedWork ->
+                                            onTaskComplete(currentClass, clickedWork.xp)
+
+                                            val workIndex = work.indexOf(clickedWork)
+                                            if (workIndex != -1) {
+                                                work[workIndex] = clickedWork.copy(done = true)
+                                                AppPreferences.saveWork(context, work.toList())
+                                            }
+                                        },
+                                        onAddWorkClick = {
+                                            newWorkName = ""
+                                            selectedWorkType = WorkType.CLASSWORK
+                                            addWorkReturnTo = AppScreen.CLASS_VIEW
+                                            currentScreen = AppScreen.ADD_WORK
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
