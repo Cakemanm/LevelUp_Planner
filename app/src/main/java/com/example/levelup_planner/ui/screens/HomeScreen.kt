@@ -34,7 +34,6 @@ fun HomeScreen(
     work: List<WorkItem>,
     points: Int,
     onAddClassClick: () -> Unit,
-    onAddWorkClick: () -> Unit,
     onClassClick: (ClassItem) -> Unit
 ) {
     Column(
@@ -55,25 +54,12 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        Button(
+            onClick = onAddClassClick,
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Button(
-                onClick = onAddClassClick,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Add Class")
-            }
-
-            Button(
-                onClick = onAddWorkClick,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Add Work")
-            }
+            Text("Add Class")
         }
 
         Spacer(modifier = Modifier.height(16.dp))

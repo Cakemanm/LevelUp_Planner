@@ -93,11 +93,6 @@ class MainActivity : ComponentActivity() {
                 )
             }
 
-            // Where AddWorkScreen should return to on save/cancel (HOME vs CLASS_VIEW)
-            var addWorkReturnTo by rememberSaveable {
-                mutableStateOf(AppScreen.HOME)
-            }
-
             var selectedClass by remember { mutableStateOf<ClassItem?>(null) }
 
             val classes = remember {
@@ -239,12 +234,6 @@ class MainActivity : ComponentActivity() {
                                         newClassName = ""
                                         currentScreen = AppScreen.ADD_CLASS
                                     },
-                                    onAddWorkClick = {
-                                        newWorkName = ""
-                                        selectedWorkType = WorkType.CLASSWORK
-                                        addWorkReturnTo = AppScreen.HOME
-                                        currentScreen = AppScreen.ADD_WORK
-                                    },
                                     onClassClick = { clickedClass ->
                                         selectedClass = clickedClass
                                         currentScreen = AppScreen.CLASS_VIEW
@@ -299,13 +288,13 @@ class MainActivity : ComponentActivity() {
                                             AppPreferences.saveWork(context, work.toList())
                                             newWorkName = ""
                                             selectedWorkType = WorkType.CLASSWORK
-                                            currentScreen = addWorkReturnTo
+                                            currentScreen = AppScreen.CLASS_VIEW
                                         }
                                     },
                                     onCancel = {
                                         newWorkName = ""
                                         selectedWorkType = WorkType.CLASSWORK
-                                        currentScreen = addWorkReturnTo
+                                        currentScreen = AppScreen.CLASS_VIEW
                                     }
                                 )
                             }
@@ -344,7 +333,6 @@ class MainActivity : ComponentActivity() {
                                         onAddWorkClick = {
                                             newWorkName = ""
                                             selectedWorkType = WorkType.CLASSWORK
-                                            addWorkReturnTo = AppScreen.CLASS_VIEW
                                             currentScreen = AppScreen.ADD_WORK
                                         }
                                     )
