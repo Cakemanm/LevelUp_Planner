@@ -139,6 +139,7 @@ private fun ClassCard(classItem: ClassItem, onClick: () -> Unit) {
 
             LinearProgressIndicator(
                 progress = { progress },
+                trackColor = androidx.compose.ui.graphics.Color.White,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp)

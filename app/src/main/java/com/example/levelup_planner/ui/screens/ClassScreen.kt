@@ -62,6 +62,7 @@ fun ClassScreen(
 
         LinearProgressIndicator(
             progress = { classItem.xp / 100f },
+            trackColor = androidx.compose.ui.graphics.Color.White,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(12.dp)

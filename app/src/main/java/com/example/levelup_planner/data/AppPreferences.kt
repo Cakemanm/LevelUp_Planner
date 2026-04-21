@@ -17,6 +17,8 @@ object AppPreferences {
     private const val KEY_AVATAR = "avatar"
     private const val KEY_WORK = "work"
     private const val KEY_POINTS = "user_Points"
+    private const val KEY_OWNED_AVATARS = "owned_avatars"
+    private const val KEY_OWNED_THEMES = "owned_themes"
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -34,11 +36,11 @@ object AppPreferences {
     }
 
     fun getThemeMode(context: Context): ThemeMode {
-        val saved = prefs(context).getString(KEY_THEME, ThemeMode.SYSTEM.name)
+        val saved = prefs(context).getString(KEY_THEME, ThemeMode.LIGHT.name)
         return try {
-            ThemeMode.valueOf(saved ?: ThemeMode.SYSTEM.name)
+            ThemeMode.valueOf(saved ?: ThemeMode.LIGHT.name)
         } catch (e: Exception) {
-            ThemeMode.SYSTEM
+            ThemeMode.LIGHT
         }
     }
 
@@ -142,5 +144,39 @@ object AppPreferences {
 
     fun savePoints(context: Context, points: Int) {
         prefs(context).edit().putInt(KEY_POINTS, points).apply()
+    }
+
+    fun getOwnedAvatars(context: Context): Set<AvatarChoice> {
+        val defaults = AvatarChoice.values().filter { it.isDefault }.map { it.name }.toSet()
+        val saved = prefs(context).getStringSet(KEY_OWNED_AVATARS, emptySet()) ?: emptySet()
+        return (defaults + saved).mapNotNull {
+            try {
+                AvatarChoice.valueOf(it)
+            } catch (e: Exception) {
+                null
+            }
+        }.toSet()
+    }
+
+    fun saveOwnedAvatars(context: Context, owned: Set<AvatarChoice>) {
+        val nonDefaults = owned.filter { !it.isDefault }.map { it.name }.toSet()
+        prefs(context).edit().putStringSet(KEY_OWNED_AVATARS, nonDefaults).apply()
+    }
+
+    fun getOwnedThemes(context: Context): Set<ThemeMode> {
+        val defaults = ThemeMode.values().filter { it.isDefault }.map { it.name }.toSet()
+        val saved = prefs(context).getStringSet(KEY_OWNED_THEMES, emptySet()) ?: emptySet()
+        return (defaults + saved).mapNotNull {
+            try {
+                ThemeMode.valueOf(it)
+            } catch (e: Exception) {
+                null
+            }
+        }.toSet()
+    }
+
+    fun saveOwnedThemes(context: Context, owned: Set<ThemeMode>) {
+        val nonDefaults = owned.filter { !it.isDefault }.map { it.name }.toSet()
+        prefs(context).edit().putStringSet(KEY_OWNED_THEMES, nonDefaults).apply()
     }
 }

@@ -1,15 +1,19 @@
 package com.example.levelup_planner.ui.theme
 
-import android.app.Activity
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
+import com.example.levelup_planner.model.ThemeMode
+
+fun themeSwatchColor(theme: ThemeMode): Color = when (theme) {
+    ThemeMode.LIGHT -> Color(0xFF6650A4)
+    ThemeMode.DARK -> Color(0xFFD0BCFF)
+    ThemeMode.OCEAN -> Color(0xFF0D47A1)
+    ThemeMode.FOREST -> Color(0xFF1B5E20)
+    ThemeMode.SUNSET -> Color(0xFFBF360C)
+}
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -21,33 +25,76 @@ private val LightColorScheme = lightColorScheme(
     primary = Purple40,
     secondary = PurpleGrey40,
     tertiary = Pink40
+)
 
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+private val OceanColorScheme = darkColorScheme(
+    primary = OceanPrimary,
+    onPrimary = OceanBackground,
+    primaryContainer = OceanSurfaceVariant,
+    onPrimaryContainer = OceanOnDark,
+    secondary = OceanSecondary,
+    onSecondary = OceanBackground,
+    secondaryContainer = OceanSurfaceVariant,
+    onSecondaryContainer = OceanOnDark,
+    tertiary = OceanTertiary,
+    onTertiary = OceanBackground,
+    background = OceanBackground,
+    onBackground = OceanOnDark,
+    surface = OceanSurface,
+    onSurface = OceanOnDark,
+    surfaceVariant = OceanSurfaceVariant,
+    onSurfaceVariant = OceanOnDark
+)
+
+private val ForestColorScheme = darkColorScheme(
+    primary = ForestPrimary,
+    onPrimary = ForestBackground,
+    primaryContainer = ForestSurfaceVariant,
+    onPrimaryContainer = ForestOnDark,
+    secondary = ForestSecondary,
+    onSecondary = ForestBackground,
+    secondaryContainer = ForestSurfaceVariant,
+    onSecondaryContainer = ForestOnDark,
+    tertiary = ForestTertiary,
+    onTertiary = ForestBackground,
+    background = ForestBackground,
+    onBackground = ForestOnDark,
+    surface = ForestSurface,
+    onSurface = ForestOnDark,
+    surfaceVariant = ForestSurfaceVariant,
+    onSurfaceVariant = ForestOnDark
+)
+
+private val SunsetColorScheme = darkColorScheme(
+    primary = SunsetPrimary,
+    onPrimary = SunsetBackground,
+    primaryContainer = SunsetSurfaceVariant,
+    onPrimaryContainer = SunsetOnDark,
+    secondary = SunsetSecondary,
+    onSecondary = SunsetBackground,
+    secondaryContainer = SunsetSurfaceVariant,
+    onSecondaryContainer = SunsetOnDark,
+    tertiary = SunsetTertiary,
+    onTertiary = SunsetBackground,
+    background = SunsetBackground,
+    onBackground = SunsetOnDark,
+    surface = SunsetSurface,
+    onSurface = SunsetOnDark,
+    surfaceVariant = SunsetSurfaceVariant,
+    onSurfaceVariant = SunsetOnDark
 )
 
 @Composable
 fun LevelUp_PlannerTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    themeMode: ThemeMode = ThemeMode.LIGHT,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+    val colorScheme = when (themeMode) {
+        ThemeMode.LIGHT -> LightColorScheme
+        ThemeMode.DARK -> DarkColorScheme
+        ThemeMode.OCEAN -> OceanColorScheme
+        ThemeMode.FOREST -> ForestColorScheme
+        ThemeMode.SUNSET -> SunsetColorScheme
     }
 
     MaterialTheme(

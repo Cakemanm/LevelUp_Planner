@@ -5,13 +5,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -40,6 +41,7 @@ import com.example.levelup_planner.ui.screens.ClassScreen
 import com.example.levelup_planner.ui.screens.HomeScreen
 import com.example.levelup_planner.ui.screens.OnboardingScreen
 import com.example.levelup_planner.ui.screens.ProfileScreen
+import com.example.levelup_planner.ui.screens.ShopScreen
 import com.example.levelup_planner.ui.screens.ThemeSelectionScreen
 import com.example.levelup_planner.ui.screens.WorkType
 import com.example.levelup_planner.ui.theme.LevelUp_PlannerTheme
@@ -51,6 +53,7 @@ enum class AppScreen {
     ADD_CLASS,
     ADD_WORK,
     PROFILE,
+    SHOP,
     CLASS_VIEW
 }
 
@@ -111,6 +114,18 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf(AppPreferences.getPoints(context))
             }
 
+            val ownedAvatars = remember {
+                mutableStateMapOf<AvatarChoice, Boolean>().apply {
+                    AppPreferences.getOwnedAvatars(context).forEach { put(it, true) }
+                }
+            }
+
+            val ownedThemes = remember {
+                mutableStateMapOf<ThemeMode, Boolean>().apply {
+                    AppPreferences.getOwnedThemes(context).forEach { put(it, true) }
+                }
+            }
+
             // Award XP to a class and hand out 50 points per level-up
             val onTaskComplete: (ClassItem, Int) -> Unit = { targetClass, xpGain ->
                 val index = classes.indexOf(targetClass)
@@ -140,16 +155,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            val useDarkTheme = when (themeMode) {
-                ThemeMode.LIGHT -> false
-                ThemeMode.DARK -> true
-                ThemeMode.SYSTEM -> isSystemInDarkTheme()
-            }
-
-            val showBottomBar = currentScreen == AppScreen.HOME || currentScreen == AppScreen.PROFILE
+            val showBottomBar = currentScreen == AppScreen.HOME ||
+                    currentScreen == AppScreen.PROFILE ||
+                    currentScreen == AppScreen.SHOP
 
             LevelUp_PlannerTheme(
-                darkTheme = useDarkTheme
+                themeMode = themeMode
             ) {
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
@@ -168,16 +179,22 @@ class MainActivity : ComponentActivity() {
                                     label = { Text("Home") }
                                 )
                                 NavigationBarItem(
+                                    selected = currentScreen == AppScreen.SHOP,
+                                    onClick = { currentScreen = AppScreen.SHOP },
+                                    icon = {
+                                        Icon(
+                                            imageVector = Icons.Default.ShoppingCart,
+                                            contentDescription = "Shop"
+                                        )
+                                    },
+                                    label = { Text("Shop") }
+                                )
+                                NavigationBarItem(
                                     selected = currentScreen == AppScreen.PROFILE,
                                     onClick = { currentScreen = AppScreen.PROFILE },
                                     icon = {
                                         Image(
-                                            painter = painterResource(
-                                                id = if (avatarChoice == AvatarChoice.LIGHT)
-                                                    R.drawable.avatar_light
-                                                else
-                                                    R.drawable.avatar_dark
-                                            ),
+                                            painter = painterResource(id = avatarChoice.drawableRes),
                                             contentDescription = "Profile",
                                             modifier = Modifier
                                                 .size(24.dp)
@@ -311,6 +328,32 @@ class MainActivity : ComponentActivity() {
                                     onAvatarSelected = { selected ->
                                         avatarChoice = selected
                                         AppPreferences.saveAvatar(context, selected)
+                                    },
+                                    ownedAvatars = ownedAvatars.keys,
+                                    ownedThemes = ownedThemes.keys
+                                )
+                            }
+
+                            AppScreen.SHOP -> {
+                                ShopScreen(
+                                    points = points,
+                                    ownedAvatars = ownedAvatars.keys,
+                                    ownedThemes = ownedThemes.keys,
+                                    onPurchaseAvatar = { avatar ->
+                                        if (avatar !in ownedAvatars && points >= avatar.price) {
+                                            points -= avatar.price
+                                            AppPreferences.savePoints(context, points)
+                                            ownedAvatars[avatar] = true
+                                            AppPreferences.saveOwnedAvatars(context, ownedAvatars.keys)
+                                        }
+                                    },
+                                    onPurchaseTheme = { theme ->
+                                        if (theme !in ownedThemes && points >= theme.price) {
+                                            points -= theme.price
+                                            AppPreferences.savePoints(context, points)
+                                            ownedThemes[theme] = true
+                                            AppPreferences.saveOwnedThemes(context, ownedThemes.keys)
+                                        }
                                     }
                                 )
                             }
