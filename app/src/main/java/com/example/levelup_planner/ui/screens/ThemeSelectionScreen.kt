@@ -50,14 +50,6 @@ fun ThemeSelectionScreen(
             onClick = { onThemeSelected(ThemeMode.DARK) }
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        ThemeButton(
-            text = "System Theme",
-            selected = selectedTheme == ThemeMode.SYSTEM,
-            onClick = { onThemeSelected(ThemeMode.SYSTEM) }
-        )
-
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(

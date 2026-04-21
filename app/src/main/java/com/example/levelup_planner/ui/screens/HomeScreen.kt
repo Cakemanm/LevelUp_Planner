@@ -23,14 +23,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.levelup_planner.model.ClassItem
+import com.example.levelup_planner.model.WorkItem
 
 @Composable
 fun HomeScreen(
     username: String,
     classes: List<ClassItem>,
+    work: List<WorkItem>,
     points: Int,
     onAddClassClick: () -> Unit,
     onClassClick: (ClassItem) -> Unit
@@ -47,7 +48,8 @@ fun HomeScreen(
 
         Text(
             text = "Points: $points",
-            style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.primary
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -72,6 +74,20 @@ fun HomeScreen(
                     onClick = { onClassClick(classItem) }
                 )
             }
+
+            if (work.isNotEmpty()) {
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Work",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+
+                items(work) { workItem ->
+                    HomeWorkCard(workItem)
+                }
+            }
         }
     }
 }
@@ -92,9 +108,7 @@ private fun ClassCard(classItem: ClassItem, onClick: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-
-                //level badge
-                Surface (
+                Surface(
                     color = MaterialTheme.colorScheme.primaryContainer,
                     shape = CircleShape
                 ) {
@@ -105,31 +119,60 @@ private fun ClassCard(classItem: ClassItem, onClick: () -> Unit) {
                     )
                 }
 
-                //class name
                 Text(
                     text = classItem.name,
                     style = MaterialTheme.typography.titleLarge
                 )
+            }
 
-                Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    Text(text = "XP Progress:")
-                    Text(text = "${classItem.xp}/100")
-                }
-                Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Text(text = "XP Progress: ")
+                Text(text = "${classItem.xp}/100")
+            }
 
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(CircleShape)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            LinearProgressIndicator(
+                progress = { progress },
+                trackColor = androidx.compose.ui.graphics.Color.White,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(CircleShape)
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeWorkCard(workItem: WorkItem) {
+    Card(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = workItem.name,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = if (workItem.done) "Done" else "Pending",
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
+
+            Text(text = "+${workItem.xp} XP")
         }
     }
 }

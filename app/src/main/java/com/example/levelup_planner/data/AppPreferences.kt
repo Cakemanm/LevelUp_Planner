@@ -1,7 +1,5 @@
 package com.example.levelup_planner.data
 
-import android.R.attr.name
-import android.R.attr.type
 import android.content.Context
 import com.example.levelup_planner.model.AvatarChoice
 import com.example.levelup_planner.model.ClassItem
@@ -19,7 +17,8 @@ object AppPreferences {
     private const val KEY_AVATAR = "avatar"
     private const val KEY_WORK = "work"
     private const val KEY_POINTS = "user_Points"
-
+    private const val KEY_OWNED_AVATARS = "owned_avatars"
+    private const val KEY_OWNED_THEMES = "owned_themes"
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -37,11 +36,11 @@ object AppPreferences {
     }
 
     fun getThemeMode(context: Context): ThemeMode {
-        val saved = prefs(context).getString(KEY_THEME, ThemeMode.SYSTEM.name)
+        val saved = prefs(context).getString(KEY_THEME, ThemeMode.LIGHT.name)
         return try {
-            ThemeMode.valueOf(saved ?: ThemeMode.SYSTEM.name)
+            ThemeMode.valueOf(saved ?: ThemeMode.LIGHT.name)
         } catch (e: Exception) {
-            ThemeMode.SYSTEM
+            ThemeMode.LIGHT
         }
     }
 
@@ -90,15 +89,28 @@ object AppPreferences {
         return classList
     }
 
+    fun saveWork(context: Context, work: List<WorkItem>) {
+        val jsonArray = JSONArray()
+        work.forEach { workItem ->
+            val obj = JSONObject()
+            obj.put("name", workItem.name)
+            obj.put("done", workItem.done)
+            obj.put("xp", workItem.xp)
+            obj.put("due", workItem.due)
+            obj.put("type", workItem.type.name)
+            jsonArray.put(obj)
+        }
+
+        prefs(context).edit().putString(KEY_WORK, jsonArray.toString()).apply()
+    }
+
     fun getWork(context: Context): List<WorkItem> {
         val jsonString = prefs(context).getString(KEY_WORK, "[]") ?: "[]"
         val jsonArray = JSONArray(jsonString)
         val workList = mutableListOf<WorkItem>()
 
-
         for (i in 0 until jsonArray.length()) {
             val obj = jsonArray.getJSONObject(i)
-
 
             val name = obj.optString("name", "Unknown")
             val done = obj.optBoolean("done", false)
@@ -112,7 +124,6 @@ object AppPreferences {
                 WorkType.CLASSWORK
             }
 
-
             workList.add(
                 WorkItem(
                     name = name,
@@ -124,37 +135,48 @@ object AppPreferences {
             )
         }
 
-
-
         return workList
     }
 
-
-    fun saveWork(context: Context, work: List<WorkItem>) {
-        val jsonArray = JSONArray()
-        work.forEach { workItem ->
-            val obj = JSONObject()
-            obj.put("name", workItem.name)
-            obj.put("done", workItem.done)
-            obj.put("xp", workItem.xp)
-            obj.put("due", workItem.due)
-            obj.put("type", workItem.type.name)
-
-            jsonArray.put(obj)
-        }
-
-
-        prefs(context).edit().putString(KEY_WORK, jsonArray.toString()).apply()
-    }
-
     fun getPoints(context: Context): Int {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getInt(KEY_POINTS, 0)
+        return prefs(context).getInt(KEY_POINTS, 0)
     }
 
     fun savePoints(context: Context, points: Int) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putInt(KEY_POINTS, points).apply()
+        prefs(context).edit().putInt(KEY_POINTS, points).apply()
     }
 
+    fun getOwnedAvatars(context: Context): Set<AvatarChoice> {
+        val defaults = AvatarChoice.values().filter { it.isDefault }.map { it.name }.toSet()
+        val saved = prefs(context).getStringSet(KEY_OWNED_AVATARS, emptySet()) ?: emptySet()
+        return (defaults + saved).mapNotNull {
+            try {
+                AvatarChoice.valueOf(it)
+            } catch (e: Exception) {
+                null
+            }
+        }.toSet()
+    }
+
+    fun saveOwnedAvatars(context: Context, owned: Set<AvatarChoice>) {
+        val nonDefaults = owned.filter { !it.isDefault }.map { it.name }.toSet()
+        prefs(context).edit().putStringSet(KEY_OWNED_AVATARS, nonDefaults).apply()
+    }
+
+    fun getOwnedThemes(context: Context): Set<ThemeMode> {
+        val defaults = ThemeMode.values().filter { it.isDefault }.map { it.name }.toSet()
+        val saved = prefs(context).getStringSet(KEY_OWNED_THEMES, emptySet()) ?: emptySet()
+        return (defaults + saved).mapNotNull {
+            try {
+                ThemeMode.valueOf(it)
+            } catch (e: Exception) {
+                null
+            }
+        }.toSet()
+    }
+
+    fun saveOwnedThemes(context: Context, owned: Set<ThemeMode>) {
+        val nonDefaults = owned.filter { !it.isDefault }.map { it.name }.toSet()
+        prefs(context).edit().putStringSet(KEY_OWNED_THEMES, nonDefaults).apply()
+    }
 }

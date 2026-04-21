@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -20,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -28,7 +30,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.isSystemInDarkTheme
 import com.example.levelup_planner.data.AppPreferences
 import com.example.levelup_planner.model.AvatarChoice
 import com.example.levelup_planner.model.ClassItem
@@ -40,6 +41,7 @@ import com.example.levelup_planner.ui.screens.ClassScreen
 import com.example.levelup_planner.ui.screens.HomeScreen
 import com.example.levelup_planner.ui.screens.OnboardingScreen
 import com.example.levelup_planner.ui.screens.ProfileScreen
+import com.example.levelup_planner.ui.screens.ShopScreen
 import com.example.levelup_planner.ui.screens.ThemeSelectionScreen
 import com.example.levelup_planner.ui.screens.WorkType
 import com.example.levelup_planner.ui.theme.LevelUp_PlannerTheme
@@ -49,10 +51,10 @@ enum class AppScreen {
     THEME,
     HOME,
     ADD_CLASS,
+    ADD_WORK,
     PROFILE,
-    CLASS_VIEW,
-    ADD_WORK
-
+    SHOP,
+    CLASS_VIEW
 }
 
 class MainActivity : ComponentActivity() {
@@ -80,6 +82,14 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf("")
             }
 
+            var newWorkName by rememberSaveable {
+                mutableStateOf("")
+            }
+
+            var selectedWorkType by rememberSaveable {
+                mutableStateOf(WorkType.CLASSWORK)
+            }
+
             var currentScreen by rememberSaveable {
                 mutableStateOf(
                     if (username.isBlank()) AppScreen.ONBOARDING else AppScreen.HOME
@@ -87,9 +97,12 @@ class MainActivity : ComponentActivity() {
             }
 
             var selectedClass by remember { mutableStateOf<ClassItem?>(null) }
-            var newWorkName by rememberSaveable { mutableStateOf("") }
 
-            var selectedWorkType by remember { mutableStateOf(WorkType.CLASSWORK) }
+            val classes = remember {
+                mutableStateListOf<ClassItem>().apply {
+                    addAll(AppPreferences.getClasses(context))
+                }
+            }
 
             val work = remember {
                 mutableStateListOf<WorkItem>().apply {
@@ -101,14 +114,19 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf(AppPreferences.getPoints(context))
             }
 
-            val classes = remember {
-                mutableStateListOf<ClassItem>().apply {
-                    addAll(AppPreferences.getClasses(context))
+            val ownedAvatars = remember {
+                mutableStateMapOf<AvatarChoice, Boolean>().apply {
+                    AppPreferences.getOwnedAvatars(context).forEach { put(it, true) }
                 }
             }
 
+            val ownedThemes = remember {
+                mutableStateMapOf<ThemeMode, Boolean>().apply {
+                    AppPreferences.getOwnedThemes(context).forEach { put(it, true) }
+                }
+            }
 
-            //xp gain
+            // Award XP to a class and hand out 50 points per level-up
             val onTaskComplete: (ClassItem, Int) -> Unit = { targetClass, xpGain ->
                 val index = classes.indexOf(targetClass)
                 if (index != -1) {
@@ -119,12 +137,16 @@ class MainActivity : ComponentActivity() {
                     while (newXp >= 100) {
                         newXp -= 100
                         newLevel++
-                        earnedPoints += 50 // Reward for leveling up
+                        earnedPoints += 50
                     }
 
-                    // Update List and SharedPreferences
                     classes[index] = targetClass.copy(xp = newXp, level = newLevel)
                     AppPreferences.saveClasses(context, classes.toList())
+
+                    // Keep selectedClass reference in sync so the detail view stays accurate
+                    if (selectedClass == targetClass) {
+                        selectedClass = classes[index]
+                    }
 
                     if (earnedPoints > 0) {
                         points += earnedPoints
@@ -133,16 +155,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            val useDarkTheme = when (themeMode) {
-                ThemeMode.LIGHT -> false
-                ThemeMode.DARK -> true
-                ThemeMode.SYSTEM -> isSystemInDarkTheme()
-            }
-
-            val showBottomBar = currentScreen == AppScreen.HOME || currentScreen == AppScreen.PROFILE
+            val showBottomBar = currentScreen == AppScreen.HOME ||
+                    currentScreen == AppScreen.PROFILE ||
+                    currentScreen == AppScreen.SHOP
 
             LevelUp_PlannerTheme(
-                darkTheme = useDarkTheme
+                themeMode = themeMode
             ) {
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
@@ -161,16 +179,22 @@ class MainActivity : ComponentActivity() {
                                     label = { Text("Home") }
                                 )
                                 NavigationBarItem(
+                                    selected = currentScreen == AppScreen.SHOP,
+                                    onClick = { currentScreen = AppScreen.SHOP },
+                                    icon = {
+                                        Icon(
+                                            imageVector = Icons.Default.ShoppingCart,
+                                            contentDescription = "Shop"
+                                        )
+                                    },
+                                    label = { Text("Shop") }
+                                )
+                                NavigationBarItem(
                                     selected = currentScreen == AppScreen.PROFILE,
                                     onClick = { currentScreen = AppScreen.PROFILE },
                                     icon = {
                                         Image(
-                                            painter = painterResource(
-                                                id = if (avatarChoice == AvatarChoice.LIGHT)
-                                                    R.drawable.avatar_light
-                                                else
-                                                    R.drawable.avatar_dark
-                                            ),
+                                            painter = painterResource(id = avatarChoice.drawableRes),
                                             contentDescription = "Profile",
                                             modifier = Modifier
                                                 .size(24.dp)
@@ -221,16 +245,15 @@ class MainActivity : ComponentActivity() {
                                 HomeScreen(
                                     username = username,
                                     classes = classes,
+                                    work = work,
                                     points = points,
                                     onAddClassClick = {
+                                        newClassName = ""
                                         currentScreen = AppScreen.ADD_CLASS
                                     },
                                     onClassClick = { clickedClass ->
                                         selectedClass = clickedClass
                                         currentScreen = AppScreen.CLASS_VIEW
-
-//                                        selectedClass ->
-//                                        onTaskComplete(selectedClass, 25)
                                     }
                                 )
                             }
@@ -261,45 +284,6 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
 
-                            AppScreen.PROFILE -> {
-                                ProfileScreen(
-                                    username = username,
-                                    selectedTheme = themeMode,
-                                    onThemeSelected = { selected ->
-                                        themeMode = selected
-                                        AppPreferences.saveThemeMode(context, selected)
-                                    },
-                                    selectedAvatar = avatarChoice,
-                                    onAvatarSelected = { selected ->
-                                        avatarChoice = selected
-                                        AppPreferences.saveAvatar(context, selected)
-                                    }
-                                )
-                            }
-
-                            AppScreen.CLASS_VIEW -> {
-                                selectedClass?.let { currentClass ->
-                                    ClassScreen(
-                                        classItem = currentClass,
-                                        workList = work.filter { !it.done }, // Only show incomplete work
-                                        onBack = { currentScreen = AppScreen.HOME },
-                                        onCompleteWork = { clickedWork ->
-                                            onTaskComplete(currentClass, clickedWork.xp)
-
-                                            // Mark this specific work item as done
-                                            val workIndex = work.indexOf(clickedWork)
-                                            if (workIndex != -1) {
-                                                work[workIndex] = clickedWork.copy(done = true)
-                                                AppPreferences.saveWork(context, work.toList())
-                                            }
-                                        },
-                                        onAddWorkClick = {
-                                            currentScreen = AppScreen.ADD_WORK
-                                        }
-                                    )
-                                }
-                            }
-
                             AppScreen.ADD_WORK -> {
                                 AddWorkScreen(
                                     workName = newWorkName,
@@ -314,7 +298,8 @@ class MainActivity : ComponentActivity() {
                                                     name = trimmed,
                                                     done = false,
                                                     xp = selectedWorkType.xpReward,
-                                                    due = trimmed
+                                                    due = "",
+                                                    type = selectedWorkType
                                                 )
                                             )
                                             AppPreferences.saveWork(context, work.toList())
@@ -325,11 +310,77 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onCancel = {
                                         newWorkName = ""
+                                        selectedWorkType = WorkType.CLASSWORK
                                         currentScreen = AppScreen.CLASS_VIEW
                                     }
                                 )
                             }
 
+                            AppScreen.PROFILE -> {
+                                ProfileScreen(
+                                    username = username,
+                                    selectedTheme = themeMode,
+                                    onThemeSelected = { selected ->
+                                        themeMode = selected
+                                        AppPreferences.saveThemeMode(context, selected)
+                                    },
+                                    selectedAvatar = avatarChoice,
+                                    onAvatarSelected = { selected ->
+                                        avatarChoice = selected
+                                        AppPreferences.saveAvatar(context, selected)
+                                    },
+                                    ownedAvatars = ownedAvatars.keys,
+                                    ownedThemes = ownedThemes.keys
+                                )
+                            }
+
+                            AppScreen.SHOP -> {
+                                ShopScreen(
+                                    points = points,
+                                    ownedAvatars = ownedAvatars.keys,
+                                    ownedThemes = ownedThemes.keys,
+                                    onPurchaseAvatar = { avatar ->
+                                        if (avatar !in ownedAvatars && points >= avatar.price) {
+                                            points -= avatar.price
+                                            AppPreferences.savePoints(context, points)
+                                            ownedAvatars[avatar] = true
+                                            AppPreferences.saveOwnedAvatars(context, ownedAvatars.keys)
+                                        }
+                                    },
+                                    onPurchaseTheme = { theme ->
+                                        if (theme !in ownedThemes && points >= theme.price) {
+                                            points -= theme.price
+                                            AppPreferences.savePoints(context, points)
+                                            ownedThemes[theme] = true
+                                            AppPreferences.saveOwnedThemes(context, ownedThemes.keys)
+                                        }
+                                    }
+                                )
+                            }
+
+                            AppScreen.CLASS_VIEW -> {
+                                selectedClass?.let { currentClass ->
+                                    ClassScreen(
+                                        classItem = currentClass,
+                                        workList = work.filter { !it.done },
+                                        onBack = { currentScreen = AppScreen.HOME },
+                                        onCompleteWork = { clickedWork ->
+                                            onTaskComplete(currentClass, clickedWork.xp)
+
+                                            val workIndex = work.indexOf(clickedWork)
+                                            if (workIndex != -1) {
+                                                work[workIndex] = clickedWork.copy(done = true)
+                                                AppPreferences.saveWork(context, work.toList())
+                                            }
+                                        },
+                                        onAddWorkClick = {
+                                            newWorkName = ""
+                                            selectedWorkType = WorkType.CLASSWORK
+                                            currentScreen = AppScreen.ADD_WORK
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
