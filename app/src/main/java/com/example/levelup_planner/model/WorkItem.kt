@@ -8,5 +8,6 @@ data class WorkItem(
     val done: Boolean = false,
     val xp: Int,
     val due: String,
-    val type: WorkType = WorkType.CLASSWORK
+    val type: WorkType,
+    val className: String
 )

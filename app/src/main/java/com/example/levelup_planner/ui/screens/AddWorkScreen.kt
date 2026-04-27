@@ -1,5 +1,6 @@
 package com.example.levelup_planner.ui.screens
 
+import android.R.attr.onClick
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -18,7 +21,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,6 +31,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import java.time.Instant
+import java.time.ZoneId
+import java.util.Calendar
+import java.util.Locale
 
 
 enum class WorkType(val xpReward: Int) {
@@ -48,10 +57,44 @@ fun AddWorkScreen(
     onWorkNameChange: (String) -> Unit,
     selectedType: WorkType,
     onTypeChange: (WorkType) -> Unit,
+    dueDate: String,
+    onDateChange: (String) -> Unit,
     onSave: () -> Unit,
     onCancel: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState()
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+
+                        val calendar = Calendar.getInstance().apply {
+                            timeInMillis = millis
+                        }
+
+                        val year = calendar.get(Calendar.YEAR)
+                        val month = calendar.get(Calendar.MONTH) + 1
+                        val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+                        val formattedDate = String.format(Locale.getDefault(), "%04d-%02d-%02d", year, month, day)
+
+                        onDateChange(formattedDate)
+                    }
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -74,6 +117,17 @@ fun AddWorkScreen(
         )
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedButton(
+            onClick = { showDatePicker = true },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text(if (dueDate.isEmpty()) "Select Due Date" else "Due: $dueDate")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
 
         ExposedDropdownMenuBox(
             expanded = expanded,

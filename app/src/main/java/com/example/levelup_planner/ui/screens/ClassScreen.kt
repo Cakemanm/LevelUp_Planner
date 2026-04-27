@@ -14,9 +14,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -36,17 +40,34 @@ fun ClassScreen(
     workList: List<WorkItem>,
     onBack: () -> Unit,
     onCompleteWork: (WorkItem) -> Unit,
-    onAddWorkClick: () -> Unit
+    onAddWorkClick: () -> Unit,
+    onDeleteWork: (WorkItem) -> Unit,
+    onDeleteClass: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Button(onClick = onBack) { Text("Back") }
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(text = classItem.name, style = MaterialTheme.typography.headlineMedium)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Button(onClick = onBack) { Text("Back") }
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(text = classItem.name, style = MaterialTheme.typography.headlineMedium)
+            }
+
+            IconButton(onClick = onDeleteClass) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete Class",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+
         }
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -89,14 +110,18 @@ fun ClassScreen(
             modifier = Modifier.weight(1f)
         ) {
             items(workList) { task ->
-                WorkCard(task = task, onComplete = { onCompleteWork(task) })
+                WorkCard(
+                    task = task,
+                    onComplete = { onCompleteWork(task) },
+                    onDelete = { onDeleteWork(task) }
+                )
             }
         }
     }
 }
 
 @Composable
-fun WorkCard(task: WorkItem, onComplete: () -> Unit) {
+fun WorkCard(task: WorkItem, onComplete: () -> Unit, onDelete: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         enabled = !task.done,
@@ -110,11 +135,22 @@ fun WorkCard(task: WorkItem, onComplete: () -> Unit) {
                 Text(text = task.name, style = MaterialTheme.typography.bodyLarge)
                 Text(text = "Due: ${task.due}", style = MaterialTheme.typography.bodySmall)
             }
-            Text(
-                text = "+${task.xp} XP",
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.labelLarge
-            )
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "+${task.xp} XP",
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.labelLarge
+                )
+
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete Work",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
         }
     }
 }

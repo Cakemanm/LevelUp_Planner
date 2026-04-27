@@ -98,6 +98,7 @@ object AppPreferences {
             obj.put("xp", workItem.xp)
             obj.put("due", workItem.due)
             obj.put("type", workItem.type.name)
+            obj.put("className", workItem.className)
             jsonArray.put(obj)
         }
 
@@ -116,6 +117,7 @@ object AppPreferences {
             val done = obj.optBoolean("done", false)
             val xp = obj.optInt("xp", 10)
             val due = obj.optString("due", "")
+            val className = obj.optString("className", "")
 
             val typeString = obj.optString("type", "CLASSWORK")
             val type = try {
@@ -130,7 +132,8 @@ object AppPreferences {
                     done = done,
                     xp = xp,
                     due = due,
-                    type = type
+                    type = type,
+                    className = className
                 )
             )
         }

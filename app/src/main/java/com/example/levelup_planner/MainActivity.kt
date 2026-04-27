@@ -114,6 +114,8 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf(AppPreferences.getPoints(context))
             }
 
+            var newWorkDate by rememberSaveable { mutableStateOf("") }
+
             val ownedAvatars = remember {
                 mutableStateMapOf<AvatarChoice, Boolean>().apply {
                     AppPreferences.getOwnedAvatars(context).forEach { put(it, true) }
@@ -242,10 +244,14 @@ class MainActivity : ComponentActivity() {
                             }
 
                             AppScreen.HOME -> {
+                                val displayWork = work.filter { workItem ->
+                                    !workItem.done && classes.any { it.name == workItem.className }
+                                }.sortedWith(compareBy<WorkItem> { it.due.isEmpty() }.thenBy { it.due })
+
                                 HomeScreen(
                                     username = username,
                                     classes = classes,
-                                    work = work,
+                                    work = displayWork,
                                     points = points,
                                     onAddClassClick = {
                                         newClassName = ""
@@ -290,6 +296,8 @@ class MainActivity : ComponentActivity() {
                                     onWorkNameChange = { newWorkName = it },
                                     selectedType = selectedWorkType,
                                     onTypeChange = { selectedWorkType = it },
+                                    dueDate = newWorkDate,
+                                    onDateChange = { newWorkDate = it },
                                     onSave = {
                                         val trimmed = newWorkName.trim()
                                         if (trimmed.isNotEmpty()) {
@@ -298,18 +306,21 @@ class MainActivity : ComponentActivity() {
                                                     name = trimmed,
                                                     done = false,
                                                     xp = selectedWorkType.xpReward,
-                                                    due = "",
-                                                    type = selectedWorkType
+                                                    due = newWorkDate,
+                                                    type = selectedWorkType,
+                                                    className = selectedClass?.name ?: ""
                                                 )
                                             )
                                             AppPreferences.saveWork(context, work.toList())
                                             newWorkName = ""
+                                            newWorkDate = ""
                                             selectedWorkType = WorkType.CLASSWORK
                                             currentScreen = AppScreen.CLASS_VIEW
                                         }
                                     },
                                     onCancel = {
                                         newWorkName = ""
+                                        newWorkDate = ""
                                         selectedWorkType = WorkType.CLASSWORK
                                         currentScreen = AppScreen.CLASS_VIEW
                                     }
@@ -362,7 +373,8 @@ class MainActivity : ComponentActivity() {
                                 selectedClass?.let { currentClass ->
                                     ClassScreen(
                                         classItem = currentClass,
-                                        workList = work.filter { !it.done },
+                                        workList = work.filter { it.className == currentClass.name && !it.done },
+
                                         onBack = { currentScreen = AppScreen.HOME },
                                         onCompleteWork = { clickedWork ->
                                             onTaskComplete(currentClass, clickedWork.xp)
@@ -377,6 +389,22 @@ class MainActivity : ComponentActivity() {
                                             newWorkName = ""
                                             selectedWorkType = WorkType.CLASSWORK
                                             currentScreen = AppScreen.ADD_WORK
+                                        },
+                                        onDeleteWork = { workItem ->
+                                            work.remove(workItem)
+                                            AppPreferences.saveWork(context, work.toList())
+                                        },
+                                        onDeleteClass = {
+                                            val classToDeleteName = currentClass.name
+
+                                            classes.remove(currentClass)
+                                            AppPreferences.saveClasses(context, classes.toList())
+
+                                            work.removeAll { it.className == classToDeleteName }
+
+                                            AppPreferences.saveWork(context, work.toList())
+
+                                            currentScreen = AppScreen.HOME
                                         }
                                     )
                                 }

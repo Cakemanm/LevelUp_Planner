@@ -1,5 +1,6 @@
 package com.example.levelup_planner.ui.screens
 
+import android.R.attr.contentDescription
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,8 +14,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -34,7 +39,7 @@ fun HomeScreen(
     work: List<WorkItem>,
     points: Int,
     onAddClassClick: () -> Unit,
-    onClassClick: (ClassItem) -> Unit
+    onClassClick: (ClassItem) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -75,17 +80,23 @@ fun HomeScreen(
                 )
             }
 
-            if (work.isNotEmpty()) {
+            val activeWork = work.filter { workItem ->
+                !workItem.done && classes.any { it.name == workItem.className }
+            }
+
+            if (activeWork.isNotEmpty()) {
                 item {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Work",
+                        text = "All Assignments",
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
 
-                items(work) { workItem ->
-                    HomeWorkCard(workItem)
+                items(activeWork) { workItem ->
+                    HomeWorkCard(
+                        workItem = workItem
+                    )
                 }
             }
         }
@@ -166,13 +177,34 @@ private fun HomeWorkCard(workItem: WorkItem) {
                     text = workItem.name,
                     style = MaterialTheme.typography.titleMedium
                 )
+
+                Row {
+                    Text(
+                        text = workItem.className,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+
+                    if (workItem.due.isNotEmpty()) {
+                        Text(" - ", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            text = "Due: ${workItem.due}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = if (workItem.done) "Done" else "Pending",
-                    style = MaterialTheme.typography.bodySmall
+                    text = "+${workItem.xp} XP",
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.padding(horizontal = 8.dp)
                 )
             }
 
-            Text(text = "+${workItem.xp} XP")
+
         }
     }
 }
